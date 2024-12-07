@@ -1,0 +1,134 @@
+<!--CNAD-CarSharingGO\services\vehicle-service\frontend\index.html-->
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vehicle Reservation System</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+    <style>
+        /* Your existing styles remain the same */
+        .card {
+            background-color: white;
+            border-radius: 0.75rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            padding: 2rem;
+            transition: all 0.3s;
+        }
+
+        .vehicle-card {
+            transition: transform 0.2s;
+        }
+
+        .vehicle-card:hover {
+            transform: translateY(-4px);
+        }
+
+        .button {
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        /* Add a loading overlay style */
+        #authCheckOverlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body class="min-h-screen bg-gradient-to-br from-gray-100 via-gray-50 to-white">
+    <!-- Auth Check Overlay -->
+    <div id="authCheckOverlay">
+        <div class="spinner"></div>
+    </div>
+
+    <!-- Main Content -->
+    <div id="mainContent" class="hidden">
+        <!-- Your existing vehicle service content here -->
+    </div>
+
+    <script>
+        const USER_SERVICE_URL = 'http://localhost:8080';
+        let authCheckInProgress = false;
+
+        async function checkAuth() {
+            if (authCheckInProgress) return;
+            authCheckInProgress = true;
+
+            const authToken = localStorage.getItem('authToken');
+
+            if (!authToken) {
+                localStorage.setItem('redirectAfterLogin', window.location.href);
+                window.location.href = USER_SERVICE_URL;
+                return false;
+            }
+
+            try {
+                const response = await fetch('/api/verify-token', {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+
+                if (response.ok) {
+                    document.getElementById('authCheckOverlay').style.display = 'none';
+                    document.getElementById('mainContent').classList.remove('hidden');
+                    authCheckInProgress = false;
+                    return true;
+                } else {
+                    // Clear invalid token
+                    localStorage.removeItem('authToken');
+                    localStorage.setItem('redirectAfterLogin', window.location.href);
+                    window.location.href = USER_SERVICE_URL;
+                    return false;
+                }
+            } catch (error) {
+                console.error('Auth check failed:', error);
+                authCheckInProgress = false;
+                // Only redirect if it's a genuine auth error
+                if (error.name !== 'AbortError') {
+                    localStorage.setItem('redirectAfterLogin', window.location.href);
+                    window.location.href = USER_SERVICE_URL;
+                }
+                return false;
+            }
+        }
+
+        // Initialize the page when DOM is loaded
+        document.addEventListener('DOMContentLoaded', checkAuth);
+    </script>
+</body>
+
+</html>
